@@ -1,0 +1,776 @@
+public class JoHttpCallCr {
+
+    
+ 
+    
+ @future (callout=true)
+public  static void UpdateTrackingNumber(String SubjectTrigger){
+       
+    
+    //
+     // getting end of number from Subject trigger
+                  String Endofnumber=SubjectTrigger.replaceAll( '[^0-9]', '' );
+                  String Endofnumberlike;
+                  Endofnumberlike  =SubjectTrigger.replaceAll( '[^0-9]', '' );
+    if(SubjectTrigger.contains('Inbound from')) {
+         Endofnumber= Endofnumber.substring(1, 7)+Endofnumber.substring(7,10);
+                    system.Debug('endofnumberInbound'+Endofnumber+'before'+SubjectTrigger);
+    }
+     if(SubjectTrigger.contains('Missed')) {
+                Endofnumber= Endofnumber.substring(1, 7)+Endofnumber.substring(7,10);
+                system.Debug('endofnumberMissed'+Endofnumber+'before'+SubjectTrigger);
+ 
+    }
+    String ComparStr=Endofnumber;
+                Endofnumber='%'+Endofnumber+'%'; 
+
+       
+ //Do Callout here
+   
+System.debug('Start');
+String trackingnumber_global;    
+//logging        
+
+    
+String username='+16025671505';
+String password='Gosummer7373';
+String grantType='password';   
+String secretKey='8YxGEpvlRj658zCkf8f39AEC8iGPKBSPWsBDyhNflKJA';        
+String apiKey='zaPbbyBSSSWcXR3A0j4nQQ';
+String authUrl='https://platform.ringcentral.com/restapi/oauth/token?extension=101';  
+
+
+
+//getting the local datetime of the current user today and interval
+        
+Datetime now = Datetime.now();
+System.debug('now'+now+'system'+System.now())  ;  
+ 
+Datetime local = now;
+Datetime localgmt=local;      
+
+// 
+
+  
+Datetime now_test = Datetime.now();
+Datetime formattedDT = Datetime.newInstance(now_test.year(), now_test.month(), now_test.day(), now_test.hour(), now_test.minute(), now_test.second());        
+//now_test=now_test.format('MM/dd/yyyy hh:mm:ss a z', 'Africa/Casablanca');   
+System.debug('casa: ' + now_test.format('MM/dd/yyyy hh:mm:ss a z', 'Africa/Casablanca'));
+
+String formatedTZ=formattedDT.formatGmt('yyyy-MM-dd\'T\'HH:mm:ss\'Z\''); 
+System.debug('test'+formatedTZ); 
+String todaysDateStr = formattedDT.format('yyyy-MM-dd');
+String todaysDateStrHMS = formattedDT.format('HH:mm:ss'); 
+System.debug('hms'+todaysDateStrHMS)        ;
+System.debug('datehms:'+todaysDateStr+ 'T'+todaysDateStrHMS+'Z'); 
+System.debug(local.format('HH:mm:ss')+'gmt'+local.format('HH:mm:ss')) ;       
+String datetoParam=formatedTZ; // todaysDateStr+ 'T'+todaysDateStrHMS+'Z';     
+System.debug('datetoparam:'+datetoParam); 
+        
+Datetime yesterday1=now_test.addDays(-0);    // to be commenter      
+//Datetime now2 =now_test.addDays(-5); //for testing
+Datetime now2 =now_test.addDays(-5);  // add now_test
+String formatedTZfrom=now2.formatGmt('yyyy-MM-dd\'T\'HH:mm:ss\'Z\'');         
+Integer offset2 = UserInfo.getTimezone().getOffset(now2);
+Datetime local2 = now2; 
+String todaysDateStr2 = local2.format('yyyy-MM-dd');   
+String todaysDateHMSStr2 = local2.format('HH:mm:ss');          
+System.debug('date: '+local2+ 'HHMMSS: '+todaysDateHMSStr2);    
+System.debug('datehms:'+todaysDateStr2+ 'T'+todaysDateHMSStr2+'Z'); 
+String datefromParam=todaysDateStr2+ 'T'+todaysDateHMSStr2+'Z';          
+System.debug('datefromParam:'+formatedTZfrom); 
+datefromParam=formatedTZfrom;
+        
+//Adding hours and minute to our URL 
+String timePricise='T00:00:00.000Z';        
+Integer IntervalMinutes=5;
+Integer IntervalHours=5;    
+Integer IntervalSeconds=5;         
+
+
+        
+        
+String authUrlQ1='https://platform.ringcentral.com/restapi/v1.0/account/~/call-log?view=Simple&showBlocked=true&withRecording=false&dateFrom='+datefromParam+'&totalPages=100&perPage=100000&dateTo='+datetoParam; 
+System.debug('show'+authUrlQ1);
+String authUrlCalllog='https://platform.ringcentral.com/restapi/v1.0/account/~/call-log';        
+String accessToken='';  
+        
+//hashmap extension , names
+ Map<String, Integer> extensions = new Map<String, Integer>{'Cameron Sears' => 104,'Carlos Guerra' => 110,'Darin Damme' => 105,'Dough Hopkins' => 109,'Joel Honeycutt' => 103,'Josh Barton' => 106,'Josh Barton' => 102,'Lyn Beeman' => 111,'Mike Chasan' => 114,'Super Admin' => 101};
+
+   
+// Get the Access Token to get the call log
+Http http = new Http();
+HttpRequest request = new HttpRequest();
+request.setEndpoint(authUrl);
+request.setMethod('POST');   
+Blob headerValue = Blob.valueOf(apiKey + ':' + secretKey);    
+String authorizationHeader = 'Basic ' + EncodingUtil.base64Encode(headerValue);
+request.setHeader('Authorization', authorizationHeader);
+request.setHeader('Content-Type', 'application/x-www-form-urlencoded');
+String payload = 'username='+EncodingUtil.urlEncode(username,'UTF-8')+'&password='+EncodingUtil.urlEncode(password,'UTF-8')+'&grant_type=password';
+System.debug(''+payload);
+System.debug(authorizationHeader);
+request.setBody(payload);
+HttpResponse response = http.send(request);    
+System.debug('httprequest1'+request)    ;
+    // Parse the JSON response
+if (response.getStatusCode() != 200) {
+System.debug('The status code returned was not expected: ' + response.getStatusCode() + ' ' + response.getStatus()+response.getBody());
+} else {
+System.debug('body1'+response.getBody());
+        
+//get access token
+Map<String, String> values = (Map<String, String>)JSON.deserialize(response.getBody(), Map<String, String>.class);
+accessToken = values.get('access_token');
+System.debug('access token: '+accessToken);
+        
+//Call WS CallLog of today, with missing calls of the extension (central ring extension is the identifiant of the user in central ring) of the current user
+//Mapping between extension and Users salesforce is done using Name  
+Http http2 = new Http();
+HttpRequest request2 = new HttpRequest();
+request2.setEndpoint(authUrlQ1);
+request2.setMethod('GET');   
+String authorizationHeader2 = 'Bearer ' + accessToken;
+request2.setHeader('Authorization', authorizationHeader2);
+request2.setHeader('Content-Type', 'application/json');
+HttpResponse response2 = http2.send(request2);    
+System.debug('http2'+request2) ; 
+if (response2.getStatusCode() != 200) {
+System.debug('The status code returned was not expected: ' + response2.getStatusCode() + ' ' + response2.getStatus()+response.getBody());
+} else {
+        
+        //parse getbody
+       
+String responseQ2=response2.getBody();
+System.debug('body2'+response2.getBody());               
+Map<String, Object> results = (Map<String, Object>)JSON.deserializeUntyped(responseQ2); 
+System.debug('results'+results);    
+List<Object> callrecords = (List<Object>)results.get('records');
+System.debug('sierrecords: '+callrecords.size());
+System.debug('list0: '+callrecords[0]);    
+        //parse from
+        
+         //create a list of crcallrecords__c to be updated only one time
+                //List<crcallrecords__c> ListcrRecords = new List<crcallrecords__c>();
+                List<Task> ListcrTasks = new List<Task>();
+                set<string> listStCheck = new set<string>();
+                List<Task> ListcrTasksnotexist = new List<Task>();
+                List<Task> ListTasknewCalls = new List<Task>();
+                boolean newcall=false;
+                List<Task> ListcrTasksWithNewPhone = new List<Task>();
+                List<Lead> leadsList = new List<Lead>();
+                List<Task> result = new List<Task>();
+                Integer Missed=0;
+                boolean findt=false;
+                List<Task> ListTriggerTask = new List<Task>();
+         
+        
+          for(Object inidividualRecords : callrecords){
+             System.debug('insidemissingrecords');
+              findt=false;
+            //use for store records in objects , parse missing calls only and create new tasks 
+            Map<String,Object> uriv = (Map<String,Object> )inidividualRecords;
+            Id idUser; // to store the ask ID asignement to our users called from external number  
+             // try to store recording URL for all calls 
+                 
+                 ///
+            //number of missed record
+           
+            if(  (uriv.get('result').equals('Missed') || uriv.get('result').equals('Hang Up') )  
+            & uriv.get('action').equals('Phone Call') & uriv.get('direction').equals('Inbound') )  {
+            Missed=Missed+1;
+            System.debug('MissingCall = ' + uriv.get('result'));
+            System.debug('URIv = ' + uriv.get('uri'));
+            System.debug('showFrom = ' + uriv.get('from'));
+            System.debug('type = ' + uriv.get('type'));
+            System.debug('direction = ' + uriv.get('direction'));
+            System.debug('showstartTime = ' + uriv.get('startTime'));
+              
+            Map<String, Object> resultsfrom = (Map<String, Object>)uriv.get('from');
+            System.debug('NAMEFROM = ' + resultsfrom.get('name'));
+            System.debug('LOCATION = ' + resultsfrom.get('location'));
+              
+            Map<String, Object> resultsto = (Map<String, Object>)uriv.get('to');
+            System.debug('TophoneNumber = ' + resultsto.get('phoneNumber'));
+            trackingnumber_global=resultsto.get('phoneNumber').toString();
+            System.debug('trackingnumber_global'+trackingnumber_global);
+                //create task and complete all fields after
+              System.debug('before');
+                  Task tsk = new Task();
+		       String phonelooking='';
+                String phonefirst;
+               String phonelookingWithoutparenthesis='';       
+		      //Formating data From Number or tracking number
+                if(resultsfrom.get('phoneNumber') != null && resultsfrom.get('phoneNumber').toString().contains(ComparStr)){
+                 System.debug('phonef'+ resultsfrom.get('phoneNumber').toString().replaceAll( '[^0-9]', '' )  );
+                phonelooking=resultsfrom.get('phoneNumber').toString().replaceAll( '[^0-9]', '' );
+                System.debug('original'+phonelooking);
+                phonefirst=phonelooking.substring(1, 3);
+                System.debug('format'+'('+ phonefirst+') '+ phonelooking.substring(3, 7)+phonelooking.substring(7,11));  
+                phonelookingWithoutparenthesis=phonelooking;
+                phonelookingWithoutparenthesis=phonefirst+ phonelooking.substring(3, 7)+phonelooking.substring(7,11);
+                trackingnumber_global=phonelookingWithoutparenthesis;
+                System.debug('trackingnumber_global'+phonelookingWithoutparenthesis);
+                //tsk.Subject=SubjectTrigger;
+              //  Endofnumber=phonelooking.substring(3, 7)+phonelooking.substring(7,11);
+                
+                    tsk.Tracking_Number__c=    trackingnumber_global;
+                    tsk.Subject=SubjectTrigger;
+                // tsk.Subject=SubjectTrigger;
+                 
+                                       
+                    
+                }
+                   if( resultsfrom.get('phoneNumber') != null && resultsfrom.get('phoneNumber').toString().contains(ComparStr) )
+                   {
+                      // if()
+                  System.debug('subadding');
+                  ListTriggerTask.add(tsk);
+                   }
+            }
+          }
+
+Map<String,Task> aMap=new Map<String,Task>();  
+for(Task a:ListTriggerTask)
+{
+   if(!aMap.containsKey(a.Subject))
+       aMap.put(a.Subject,a); // removes duplicates from linsertion
+}    
+    
+DateTime timeNow = System.now(); // Get the time now
+//DateTime X1MinutesAgo = timeNow.addDays(-4); // for testing
+DateTime X1MinutesAgo = timeNow.addDays(-5);    
+       
+List<Task> dblist=[select ID,Subject ,CreatedDate, Tracking_Number__c from Task WHERE   CreatedDate > :X1MinutesAgo and CallDisposition='Missed' ]; 
+
+for(Task a:dblist)
+{ 
+    if(a.Subject.length()> 5) {
+    String formatedSubjects;
+    formatedSubjects=a.Subject.substring(2, 6)+a.Subject.substring(6,9);
+        if(!aMap.containsKey(formatedSubjects)){
+       aMap.remove(a.Subject); // removes not concerned missing calls
+            }
+        }
+}
+    
+ if(aMap.size()<>0 ){
+System.debug(aMap.values());
+//UpdateTrackingDML(aMap);
+                 }
+
+    
+}   
+}    
+}
+    public static void UpdateTrackingDML(Map<String,Task> mapSerts)
+    {
+        System.debug('updating'+mapSerts.values());
+      Database.Insert(mapSerts.values(),false);        
+    }
+
+    
+    public static void fortesting1(String SubjectTrigger){
+            //
+     // getting end of number from Subject trigger
+                  String Endofnumber=SubjectTrigger.replaceAll( '[^0-9]', '' );
+                  String Endofnumberlike;
+                  Endofnumberlike  =SubjectTrigger.replaceAll( '[^0-9]', '' );
+    if(SubjectTrigger.contains('Inbound from')) {
+         Endofnumber= Endofnumber.substring(1, 7)+Endofnumber.substring(7,10);
+                    system.Debug('endofnumberInbound'+Endofnumber+'before'+SubjectTrigger);
+    }
+     if(SubjectTrigger.contains('Missed')) {
+                Endofnumber= Endofnumber.substring(1, 7)+Endofnumber.substring(7,10);
+                system.Debug('endofnumberMissed'+Endofnumber+'before'+SubjectTrigger);
+ 
+    }
+    String ComparStr=Endofnumber;
+                Endofnumber='%'+Endofnumber+'%'; 
+
+       
+ //Do Callout here
+   
+System.debug('Start');
+String trackingnumber_global;    
+//logging        
+//log__c inst =new log__c();
+//inst.logcomments__c=  'StartLogging'; 
+    
+String username='+16025671505';
+String password='Gosummer7373';
+String grantType='password';   
+String secretKey='8YxGEpvlRj658zCkf8f39AEC8iGPKBSPWsBDyhNflKJA';        
+String apiKey='zaPbbyBSSSWcXR3A0j4nQQ';
+String authUrl='https://platform.ringcentral.com/restapi/oauth/token?extension=101';  
+
+
+
+//getting the local datetime of the current user today and interval
+        
+Datetime now = Datetime.now();
+System.debug('now'+now+'system'+System.now())  ;  
+//inst.datelogexecution_log__c=      now;  
+Datetime local = now;
+Datetime localgmt=local;      
+
+// 
+
+  
+Datetime now_test = Datetime.now();
+Datetime formattedDT = Datetime.newInstance(now_test.year(), now_test.month(), now_test.day(), now_test.hour(), now_test.minute(), now_test.second());        
+//now_test=now_test.format('MM/dd/yyyy hh:mm:ss a z', 'Africa/Casablanca');   
+System.debug('casa: ' + now_test.format('MM/dd/yyyy hh:mm:ss a z', 'Africa/Casablanca'));
+
+String formatedTZ=formattedDT.formatGmt('yyyy-MM-dd\'T\'HH:mm:ss\'Z\''); 
+System.debug('test'+formatedTZ); 
+String todaysDateStr = formattedDT.format('yyyy-MM-dd');
+String todaysDateStrHMS = formattedDT.format('HH:mm:ss'); 
+System.debug('hms'+todaysDateStrHMS)        ;
+System.debug('datehms:'+todaysDateStr+ 'T'+todaysDateStrHMS+'Z'); 
+System.debug(local.format('HH:mm:ss')+'gmt'+local.format('HH:mm:ss')) ;       
+String datetoParam=formatedTZ; // todaysDateStr+ 'T'+todaysDateStrHMS+'Z';     
+System.debug('datetoparam:'+datetoParam); 
+        
+Datetime yesterday1=now_test.addDays(-0);    // to be commenter      
+//Datetime now2 =now_test.addDays(-5); //for testing
+Datetime now2 =now_test.addMinutes(-4);  // add now_test
+String formatedTZfrom=now2.formatGmt('yyyy-MM-dd\'T\'HH:mm:ss\'Z\'');         
+Integer offset2 = UserInfo.getTimezone().getOffset(now2);
+Datetime local2 = now2; 
+String todaysDateStr2 = local2.format('yyyy-MM-dd');   
+String todaysDateHMSStr2 = local2.format('HH:mm:ss');          
+System.debug('date: '+local2+ 'HHMMSS: '+todaysDateHMSStr2);    
+System.debug('datehms:'+todaysDateStr2+ 'T'+todaysDateHMSStr2+'Z'); 
+String datefromParam=todaysDateStr2+ 'T'+todaysDateHMSStr2+'Z';          
+System.debug('datefromParam:'+formatedTZfrom); 
+datefromParam=formatedTZfrom;
+        
+//Adding hours and minute to our URL 
+String timePricise='T00:00:00.000Z';        
+Integer IntervalMinutes=5;
+Integer IntervalHours=5;    
+Integer IntervalSeconds=5;         
+
+
+        
+        
+String authUrlQ1='https://platform.ringcentral.com/restapi/v1.0/account/~/call-log?view=Simple&showBlocked=true&withRecording=false&dateFrom='+datefromParam+'&totalPages=100&perPage=100000&dateTo='+datetoParam; 
+System.debug('show'+authUrlQ1);
+String authUrlCalllog='https://platform.ringcentral.com/restapi/v1.0/account/~/call-log';        
+String accessToken='';  
+        
+//hashmap extension , names
+ Map<String, Integer> extensions = new Map<String, Integer>{'Cameron Sears' => 104,'Carlos Guerra' => 110,'Darin Damme' => 105,'Dough Hopkins' => 109,'Joel Honeycutt' => 103,'Josh Barton' => 106,'Josh Barton' => 102,'Lyn Beeman' => 111,'Mike Chasan' => 114,'Super Admin' => 101};
+
+
+   
+String a1;
+String a2;
+String a3;
+String a4;
+String a5;
+String a6;
+String a7;
+String a8;
+String a9;
+String a10;
+String a11;
+String a12;
+String a13;
+String a14;
+String a15;
+String a16;
+String a17;
+String a18;
+String a19;
+String a20;
+String a21;
+String a22;
+String a23;
+String a24;
+String b30;
+String b31;
+String b32;
+String b33;
+String b34;
+String b35;
+String b36;
+String b37;
+String b38;
+String b39;
+String b40;
+String b41;
+String b42;
+String b43;
+String b44;
+String b45;
+String b46;
+String b47;
+String b48;
+String b49;
+String b50;
+String b51;
+String b52;
+String b53;
+String b54;
+String b55;
+String b56;
+String b57;
+String b58;
+String b59;
+String b60;
+String b61;
+String b62;
+String b63;
+String b64;
+String b65;
+String b66;
+        
+
+    }
+    
+    
+    
+    public static void fortesting2(String SubjectTrigger){
+            //
+     // getting end of number from Subject trigger
+                  String Endofnumber=SubjectTrigger.replaceAll( '[^0-9]', '' );
+                  String Endofnumberlike;
+                  Endofnumberlike  =SubjectTrigger.replaceAll( '[^0-9]', '' );
+    if(SubjectTrigger.contains('Inbound from')) {
+         Endofnumber= Endofnumber.substring(1, 7)+Endofnumber.substring(7,10);
+                    system.Debug('endofnumberInbound'+Endofnumber+'before'+SubjectTrigger);
+    }
+     if(SubjectTrigger.contains('Missed')) {
+                Endofnumber= Endofnumber.substring(1, 7)+Endofnumber.substring(7,10);
+                system.Debug('endofnumberMissed'+Endofnumber+'before'+SubjectTrigger);
+ 
+    }
+    String ComparStr=Endofnumber;
+                Endofnumber='%'+Endofnumber+'%'; 
+
+       
+ //Do Callout here
+   
+System.debug('Start');
+String trackingnumber_global;    
+//logging        
+//log__c inst =new log__c();
+//inst.logcomments__c=  'StartLogging'; 
+    
+String username='+16025671505';
+String password='Gosummer7373';
+String grantType='password';   
+String secretKey='8YxGEpvlRj658zCkf8f39AEC8iGPKBSPWsBDyhNflKJA';        
+String apiKey='zaPbbyBSSSWcXR3A0j4nQQ';
+String authUrl='https://platform.ringcentral.com/restapi/oauth/token?extension=101';  
+
+
+
+//getting the local datetime of the current user today and interval
+        
+Datetime now = Datetime.now();
+System.debug('now'+now+'system'+System.now())  ;  
+//inst.datelogexecution_log__c=      now;  
+Datetime local = now;
+Datetime localgmt=local;      
+
+// 
+
+  
+Datetime now_test = Datetime.now();
+Datetime formattedDT = Datetime.newInstance(now_test.year(), now_test.month(), now_test.day(), now_test.hour(), now_test.minute(), now_test.second());        
+//now_test=now_test.format('MM/dd/yyyy hh:mm:ss a z', 'Africa/Casablanca');   
+System.debug('casa: ' + now_test.format('MM/dd/yyyy hh:mm:ss a z', 'Africa/Casablanca'));
+
+String formatedTZ=formattedDT.formatGmt('yyyy-MM-dd\'T\'HH:mm:ss\'Z\''); 
+System.debug('test'+formatedTZ); 
+String todaysDateStr = formattedDT.format('yyyy-MM-dd');
+String todaysDateStrHMS = formattedDT.format('HH:mm:ss'); 
+System.debug('hms'+todaysDateStrHMS)        ;
+System.debug('datehms:'+todaysDateStr+ 'T'+todaysDateStrHMS+'Z'); 
+System.debug(local.format('HH:mm:ss')+'gmt'+local.format('HH:mm:ss')) ;       
+String datetoParam=formatedTZ; // todaysDateStr+ 'T'+todaysDateStrHMS+'Z';     
+System.debug('datetoparam:'+datetoParam); 
+        
+Datetime yesterday1=now_test.addDays(-0);    // to be commenter      
+//Datetime now2 =now_test.addDays(-5); //for testing
+Datetime now2 =now_test.addMinutes(-4);  // add now_test
+String formatedTZfrom=now2.formatGmt('yyyy-MM-dd\'T\'HH:mm:ss\'Z\'');         
+Integer offset2 = UserInfo.getTimezone().getOffset(now2);
+Datetime local2 = now2; 
+String todaysDateStr2 = local2.format('yyyy-MM-dd');   
+String todaysDateHMSStr2 = local2.format('HH:mm:ss');          
+System.debug('date: '+local2+ 'HHMMSS: '+todaysDateHMSStr2);    
+System.debug('datehms:'+todaysDateStr2+ 'T'+todaysDateHMSStr2+'Z'); 
+String datefromParam=todaysDateStr2+ 'T'+todaysDateHMSStr2+'Z';          
+System.debug('datefromParam:'+formatedTZfrom); 
+datefromParam=formatedTZfrom;
+        
+//Adding hours and minute to our URL 
+String timePricise='T00:00:00.000Z';        
+Integer IntervalMinutes=5;
+Integer IntervalHours=5;    
+Integer IntervalSeconds=5;         
+
+
+        
+        
+String authUrlQ1='https://platform.ringcentral.com/restapi/v1.0/account/~/call-log?view=Simple&showBlocked=true&withRecording=false&dateFrom='+datefromParam+'&totalPages=100&perPage=100000&dateTo='+datetoParam; 
+System.debug('show'+authUrlQ1);
+String authUrlCalllog='https://platform.ringcentral.com/restapi/v1.0/account/~/call-log';        
+String accessToken='';  
+        
+//hashmap extension , names
+ Map<String, Integer> extensions = new Map<String, Integer>{'Cameron Sears' => 104,'Carlos Guerra' => 110,'Darin Damme' => 105,'Dough Hopkins' => 109,'Joel Honeycutt' => 103,'Josh Barton' => 106,'Josh Barton' => 102,'Lyn Beeman' => 111,'Mike Chasan' => 114,'Super Admin' => 101};
+
+   
+String a1;
+String a2;
+String a3;
+String a4;
+String a5;
+String a6;
+String a7;
+String a8;
+String a9;
+String a10;
+String a11;
+String a12;
+String a13;
+String a14;
+String a15;
+String a16;
+String a17;
+String a18;
+String a19;
+String a20;
+String a21;
+String a22;
+String a23;
+String a24;
+String b30;
+String b31;
+String b32;
+String b33;
+String b34;
+String b35;
+String b36;
+String b37;
+String b38;
+String b39;
+String b40;
+String b41;
+String b42;
+String b43;
+String b44;
+String b45;
+String b46;
+String b47;
+String b48;
+String b49;
+String b50;
+String b51;
+String b52;
+String b53;
+String b54;
+String b55;
+String b56;
+String b57;
+String b58;
+String b59;
+String b60;
+String b61;
+String b62;
+String b63;
+String b64;
+String b65;
+String b66;
+        
+
+    }
+    
+   
+    public static void fortesting3(String SubjectTrigger){
+            //
+     // getting end of number from Subject trigger
+                  String Endofnumber=SubjectTrigger.replaceAll( '[^0-9]', '' );
+                  String Endofnumberlike;
+                  Endofnumberlike  =SubjectTrigger.replaceAll( '[^0-9]', '' );
+    if(SubjectTrigger.contains('Inbound from')) {
+         Endofnumber= Endofnumber.substring(1, 7)+Endofnumber.substring(7,10);
+                    system.Debug('endofnumberInbound'+Endofnumber+'before'+SubjectTrigger);
+    }
+     if(SubjectTrigger.contains('Missed')) {
+                Endofnumber= Endofnumber.substring(1, 7)+Endofnumber.substring(7,10);
+                system.Debug('endofnumberMissed'+Endofnumber+'before'+SubjectTrigger);
+ 
+    }
+    String ComparStr=Endofnumber;
+                Endofnumber='%'+Endofnumber+'%'; 
+
+       
+ //Do Callout here
+   
+System.debug('Start');
+String trackingnumber_global;    
+//logging        
+//log__c inst =new log__c();
+//inst.logcomments__c=  'StartLogging'; 
+    
+String username='+16025671505';
+String password='Gosummer7373';
+String grantType='password';   
+String secretKey='8YxGEpvlRj658zCkf8f39AEC8iGPKBSPWsBDyhNflKJA';        
+String apiKey='zaPbbyBSSSWcXR3A0j4nQQ';
+String authUrl='https://platform.ringcentral.com/restapi/oauth/token?extension=101';  
+
+
+
+//getting the local datetime of the current user today and interval
+        
+Datetime now = Datetime.now();
+System.debug('now'+now+'system'+System.now())  ;  
+//inst.datelogexecution_log__c=      now;  
+Datetime local = now;
+Datetime localgmt=local;      
+
+// 
+
+  
+Datetime now_test = Datetime.now();
+Datetime formattedDT = Datetime.newInstance(now_test.year(), now_test.month(), now_test.day(), now_test.hour(), now_test.minute(), now_test.second());        
+//now_test=now_test.format('MM/dd/yyyy hh:mm:ss a z', 'Africa/Casablanca');   
+System.debug('casa: ' + now_test.format('MM/dd/yyyy hh:mm:ss a z', 'Africa/Casablanca'));
+
+String formatedTZ=formattedDT.formatGmt('yyyy-MM-dd\'T\'HH:mm:ss\'Z\''); 
+System.debug('test'+formatedTZ); 
+String todaysDateStr = formattedDT.format('yyyy-MM-dd');
+String todaysDateStrHMS = formattedDT.format('HH:mm:ss'); 
+System.debug('hms'+todaysDateStrHMS)        ;
+System.debug('datehms:'+todaysDateStr+ 'T'+todaysDateStrHMS+'Z'); 
+System.debug(local.format('HH:mm:ss')+'gmt'+local.format('HH:mm:ss')) ;       
+String datetoParam=formatedTZ; // todaysDateStr+ 'T'+todaysDateStrHMS+'Z';     
+System.debug('datetoparam:'+datetoParam); 
+        
+Datetime yesterday1=now_test.addDays(-0);    // to be commenter      
+//Datetime now2 =now_test.addDays(-5); //for testing
+Datetime now2 =now_test.addDays(-4);  // add now_test
+String formatedTZfrom=now2.formatGmt('yyyy-MM-dd\'T\'HH:mm:ss\'Z\'');         
+Integer offset2 = UserInfo.getTimezone().getOffset(now2);
+Datetime local2 = now2; 
+String todaysDateStr2 = local2.format('yyyy-MM-dd');   
+String todaysDateHMSStr2 = local2.format('HH:mm:ss');          
+System.debug('date: '+local2+ 'HHMMSS: '+todaysDateHMSStr2);    
+System.debug('datehms:'+todaysDateStr2+ 'T'+todaysDateHMSStr2+'Z'); 
+String datefromParam=todaysDateStr2+ 'T'+todaysDateHMSStr2+'Z';          
+System.debug('datefromParam:'+formatedTZfrom); 
+datefromParam=formatedTZfrom;
+        
+//Adding hours and minute to our URL 
+String timePricise='T00:00:00.000Z';        
+Integer IntervalMinutes=5;
+Integer IntervalHours=5;    
+Integer IntervalSeconds=5;         
+
+
+        
+        
+String authUrlQ1='https://platform.ringcentral.com/restapi/v1.0/account/~/call-log?view=Simple&showBlocked=true&withRecording=false&dateFrom='+datefromParam+'&totalPages=100&perPage=100000&dateTo='+datetoParam; 
+System.debug('show'+authUrlQ1);
+String authUrlCalllog='https://platform.ringcentral.com/restapi/v1.0/account/~/call-log';        
+String accessToken='';  
+        
+//hashmap extension , names
+ Map<String, Integer> extensions = new Map<String, Integer>{'Cameron Sears' => 104,'Carlos Guerra' => 110,'Darin Damme' => 105,'Dough Hopkins' => 109,'Joel Honeycutt' => 103,'Josh Barton' => 106,'Josh Barton' => 102,'Lyn Beeman' => 111,'Mike Chasan' => 114,'Super Admin' => 101};
+
+   
+String a1;
+String a2;
+String a3;
+String a4;
+String a5;
+String a6;
+String a7;
+String a8;
+String a9;
+String a10;
+String a11;
+String a12;
+String a13;
+String a14;
+String a15;
+String a16;
+String a17;
+String a18;
+String a19;
+String a20;
+String a21;
+String a22;
+String a23;
+String a24;
+String a25;
+String a26;
+String a27;
+String a28;
+String a29;
+String a30;
+String a31;
+String a32;
+String a33;
+String a34;
+String a35;
+String a36;
+String a37;
+String a38;
+String a39;
+String a40;
+String a41;
+String a42;
+String a43;
+String b30;
+String b31;
+String b32;
+String b33;
+String b34;
+String b35;
+String b36;
+String b37;
+String b38;
+String b39;
+String b40;
+String b41;
+String b42;
+String b43;
+String b44;
+String b45;
+String b46;
+String b47;
+String b48;
+String b49;
+String b50;
+String b51;
+String b52;
+String b53;
+String b54;
+String b55;
+String b56;
+String b57;
+String b58;
+String b59;
+String b60;
+String b61;
+String b62;
+String b63;
+String b64;
+String b65;
+String b66;
+
+
+    }
+    
+  
+    
+}
